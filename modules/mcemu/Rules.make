@@ -10,8 +10,6 @@
 
 IOP_CC_VERSION := $(shell $(IOP_CC) --version 2>&1 | sed -n 's/^.*(GCC) //p')
 
-ASFLAGS_TARGET = -mcpu=r3000
-
 ifeq ($(IOP_CC_VERSION),3.2.2)
 ASFLAGS_TARGET = -march=r3000
 endif
