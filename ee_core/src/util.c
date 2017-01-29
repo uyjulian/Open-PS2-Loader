@@ -19,13 +19,13 @@ extern int size_cdvdfsv_irx;
 
 
 /* Do not link to strcpy() from libc */
-inline void _strcpy(char *dst, const char *src)
+void _strcpy(char *dst, const char *src)
 {
     strncpy(dst, src, strlen(src) + 1);
 }
 
 /* Do not link to strcat() from libc */
-inline void _strcat(char *dst, const char *src)
+void _strcat(char *dst, const char *src)
 {
     _strcpy(&dst[strlen(dst)], src);
 }
@@ -363,7 +363,7 @@ void CopyToIop(void *eedata, unsigned int size, void *iopptr)
 /*----------------------------------------------------------------------------------------*/
 /* NOP delay.                                                                             */
 /*----------------------------------------------------------------------------------------*/
-inline void delay(int count)
+void delay(int count)
 {
     int i, ret;
 
