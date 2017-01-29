@@ -52,7 +52,11 @@ before_script:
 
   ## ps2dev/PS2Toolchain
   - cd ${TRAVIS_ENV_DIR}/ps2toolchain/
-  - bash ./toolchain.sh > /tmp/OPNPS2LD-PS2TOOLCHAIN.log 2>&1
+  - bash ./toolchain.sh 1
+  - bash ./toolchain.sh 2
+  - bash ./toolchain.sh 3
+  - bash ./toolchain.sh 4
+  - bash ./toolchain.sh 5
   - curl --upload-file /tmp/OPNPS2LD-PS2TOOLCHAIN.log https://transfer.sh/OPNPS2LD-PS2TOOLCHAIN-${NEW_REPO_SLUG}-NIGHTLY${TRAVIS_BUILD_NUMBER}.log
 
   ## ps2dev/PS2SDKPorts/zlib
