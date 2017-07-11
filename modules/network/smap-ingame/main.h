@@ -11,15 +11,15 @@
 */
 #define SaveGP()                    \
     void *_ori_gp;                  \
-    __asm volatile("move %0, $gp\n" \
-                   "move $gp, %1"   \
-                   : "=&r"(_ori_gp) \
-                   : "r"(&_gp)      \
-                   : "gp")
+    // __asm volatile("move %0, $gp\n" \
+                   // "move $gp, %1"   \
+                   // : "=&r"(_ori_gp) \
+                   // : "r"(&_gp)      \
+                   // : "gp")
 
 #define RestoreGP()                              \
-    __asm volatile("move $gp, %0" ::"r"(_ori_gp) \
-                   : "gp")
+    // __asm volatile("move $gp, %0" ::"r"(_ori_gp) \
+                   // : "gp")
 
 struct SmapDriverData
 {
