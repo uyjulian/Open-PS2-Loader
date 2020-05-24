@@ -452,6 +452,12 @@ gui_strings:
   string: Pad Emulator
 - label: HINT_PADEMU_ENABLE
   string: Turns on/off Pad Emulator for selected game.
+- label: PADEMU_MODULES
+  string: Select modules to load
+- label: HINT_PADEMU_MODULES
+  string: Select which pademu modules to load.
+- label: HINT_PADEMU_MODULES_SET
+  string: Select/Unselect pademu module.
 - label: PADEMU_MODE
   string: Pad Emulator Mode
 - label: HINT_PADEMU_MODE

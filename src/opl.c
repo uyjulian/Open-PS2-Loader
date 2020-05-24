@@ -178,6 +178,7 @@ int gEnablePadEmu;
 int gPadEmuSettings;
 int gPadMacroSource;
 int gPadMacroSettings;
+int gPadEmuModules;
 #endif
 int gScrollSpeed;
 char gExitPath[32];

@@ -61,6 +61,7 @@ enum CONFIG_INDEX {
 #define CONFIG_ITEM_PADEMUSETTINGS   "$PadEmuSettings"
 #define CONFIG_ITEM_PADMACROSETTINGS "$PadMacroSettings"
 #define CONFIG_ITEM_PADMACROSOURCE   "$PadMacroSource"
+#define CONFIG_ITEM_PADEMUMODULES    "$PadEmuModules"
 
 // OPL config keys
 #define CONFIG_OPL_THEME                "theme"

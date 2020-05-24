@@ -169,6 +169,7 @@ extern int gEnablePadEmu;
 extern int gPadEmuSettings;
 extern int gPadMacroSource;
 extern int gPadMacroSettings;
+extern int gPadEmuModules;
 #endif
 
 // ------------------------------------------------------------------------------------------------------------------------
