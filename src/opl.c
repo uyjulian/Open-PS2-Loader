@@ -896,8 +896,10 @@ static void _saveConfig()
     }
 
     char *path = configGetDir();
-    if (!strncmp(path, "mc", 2))
+    if (!strncmp(path, "mc", 2)) {
         checkMCFolder();
+        configPrepareNotifications(gBaseMCDir);
+    }
 
     lscret = configWriteMulti(lscstatus);
     if (lscret == 0)
