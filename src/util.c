@@ -45,9 +45,27 @@ static int checkMC()
     int i, ret;
     static sceMcTblGetDir mc_direntry[MAX_ENTRY] __attribute__((aligned(64)));
 
-    if (mcID == -1) {
-        mcSync(0, NULL, NULL);
+    mcSync(0, NULL, NULL);
 
+    if (mcID == 0x30) {
+        mcGetInfo(0, 0, &memcardtype, &dummy, &dummy);
+        mcSync(0, NULL, &ret);
+        mc0_is_ps2card = (ret == 0 && memcardtype == 2);
+        if (!mc0_is_ps2card) {
+            mcID = -1;
+        }
+    }
+
+    if (mcID == 0x31) {
+        mcGetInfo(1, 0, &memcardtype, &dummy, &dummy);
+        mcSync(0, NULL, &ret);
+        mc1_is_ps2card = (ret == 0 && memcardtype == 2);
+        if (!mc1_is_ps2card) {
+            mcID = -1;
+        }
+    }
+
+    if (mcID == -1) {
         mcGetInfo(0, 0, &memcardtype, &dummy, &dummy);
         mcSync(0, NULL, &ret);
         mc0_is_ps2card = (ret == 0 && memcardtype == 2);
