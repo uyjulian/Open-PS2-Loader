@@ -759,6 +759,7 @@ static void _loadConfig()
 
     lscret = result;
     lscstatus = 0;
+    showCfgPopup = 1;
 }
 
 static int trySaveConfigUSB(int types)
