@@ -91,10 +91,10 @@ void cdvdman_fs_init(void)
 
     DPRINTF("cdvdman_fs_init DeviceFSInit\n");
     DeviceFSInit();
-    
+
     DPRINTF("cdvdman_fs_init memset\n");
     memset(&cdvdman_fdhandles[0], 0, MAX_FDHANDLES * sizeof(FHANDLE));
-    
+
     DPRINTF("cdvdman_fs_init cdvdman_searchfile_init\n");
     cdvdman_searchfile_init();
 

@@ -232,7 +232,7 @@ static void *cbrpc_shutdown(int fno, void *buf, int size)
     }
 
     *(int *)buf = 1;
-    
+
     DPRINTF("Shutdown RPC end\n");
     return buf;
 }
