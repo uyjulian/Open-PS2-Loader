@@ -14,6 +14,7 @@ extern struct cdvdman_settings_bdm cdvdman_settings;
 static struct block_device *g_bd = NULL;
 static u32 g_bd_sectors_per_sector = 4;
 static int usb_io_sema;
+static int device_active = 0;
 
 extern struct irx_export_table _exp_bdm;
 
@@ -29,7 +30,12 @@ void bdm_connect_bd(struct block_device *bd)
         g_bd = bd;
         g_bd_sectors_per_sector = (2048 / bd->sectorSize);
         // Free usage of block device
-        SignalSema(usb_io_sema);
+        if (QueryIntrContext()) {
+            iSignalSema(usb_io_sema);
+        } else {
+            SignalSema(usb_io_sema);
+        }
+        device_active = 1;
     }
 }
 
@@ -38,9 +44,12 @@ void bdm_disconnect_bd(struct block_device *bd)
     DPRINTF("disconnecting device %s%dp%d\n", bd->name, bd->devNr, bd->parNr);
 
     // Lock usage of block device
-    WaitSema(usb_io_sema);
-    if (g_bd == bd)
-        g_bd = NULL;
+    if (device_active) {
+        WaitSema(usb_io_sema);
+        if (g_bd == bd)
+            g_bd = NULL;
+        device_active = 0;
+    }
 }
 
 //
