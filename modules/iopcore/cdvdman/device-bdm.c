@@ -29,7 +29,11 @@ void bdm_connect_bd(struct block_device *bd)
         g_bd = bd;
         g_bd_sectors_per_sector = (2048 / bd->sectorSize);
         // Free usage of block device
-        SignalSema(usb_io_sema);
+        if (QueryIntrContext()) {
+            iSignalSema(usb_io_sema);
+        } else {
+            SignalSema(usb_io_sema);
+        }
     }
 }
 
