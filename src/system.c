@@ -212,6 +212,7 @@ void sysReset(int modload_mask)
     // load modules
     sysLoadModuleBuffer(&iomanx_irx, size_iomanx_irx, 0, NULL);
     sysLoadModuleBuffer(&filexio_irx, size_filexio_irx, 0, NULL);
+    sysLoadModuleBuffer(&bdm_irx, size_bdm_irx, 0, NULL);
 
     sysLoadModuleBuffer(&sio2man_irx, size_sio2man_irx, 0, NULL);
 
@@ -360,6 +361,7 @@ void sysExecExit(void)
 #define CORE_IRX_DEBUG 0x20
 #define CORE_IRX_DECI2 0x40
 #define CORE_IRX_ILINK 0x80
+#define CORE_IRX_ETHX  0x200
 
 typedef struct
 {
@@ -439,6 +441,8 @@ static unsigned int sendIrxKernelRAM(const char *startup, const char *mode_str, 
         modules |= CORE_IRX_USB;
     else if (!strcmp(mode_str, "BDM_ILK_MODE"))
         modules |= CORE_IRX_ILINK;
+    else if (!strcmp(mode_str, "BDM_UDP_MODE"))
+        modules |= CORE_IRX_ETHX;
     else if (!strcmp(mode_str, "ETH_MODE"))
         modules |= CORE_IRX_ETH | CORE_IRX_SMB;
     else
@@ -482,7 +486,10 @@ static unsigned int sendIrxKernelRAM(const char *startup, const char *mode_str, 
         irxptr_tab[modcount].info = size_IEEE1394_bd_irx | SET_OPL_MOD_ID(OPL_MODULE_ID_ILINKBD);
         irxptr_tab[modcount++].ptr = (void *)&IEEE1394_bd_irx;
     }
-    if (modules & CORE_IRX_ETH) {
+    if (modules & CORE_IRX_ETHX) {
+        irxptr_tab[modcount].info = size_smap_udpbd_mini_irx | SET_OPL_MOD_ID(OPL_MODULE_ID_SMAP);
+        irxptr_tab[modcount++].ptr = (void *)&smap_udpbd_mini_irx;
+    } else if (modules & CORE_IRX_ETH) {
         irxptr_tab[modcount].info = size_smap_ingame_irx | SET_OPL_MOD_ID(OPL_MODULE_ID_SMAP);
         irxptr_tab[modcount++].ptr = (void *)&smap_ingame_irx;
         irxptr_tab[modcount].info = size_ingame_smstcpip_irx | SET_OPL_MOD_ID(OPL_MODULE_ID_SMSTCPIP);

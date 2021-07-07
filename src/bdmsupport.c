@@ -85,7 +85,7 @@ void bdmLoadModules(void)
     LOG("BDMSUPPORT LoadModules\n");
 
     // Load Block Device Manager (BDM)
-    sysLoadModuleBuffer(&bdm_irx, size_bdm_irx, 0, NULL);
+    // sysLoadModuleBuffer(&bdm_irx, size_bdm_irx, 0, NULL);
 
     // Load VFAT (mass:) driver
     sysLoadModuleBuffer(&bdmfs_vfat_irx, size_bdmfs_vfat_irx, 0, NULL);
@@ -378,6 +378,8 @@ static void bdmLaunchGame(int id, config_set_t *configSet)
         sysLaunchLoaderElf(filename, "BDM_USB_MODE", irx_size, irx, size_mcemu_irx, &bdm_mcemu_irx, EnablePS2Logo, compatmask);
     else if (!strcmp(bdmDriver, "sd") && strlen(bdmDriver) == 2)
         sysLaunchLoaderElf(filename, "BDM_ILK_MODE", irx_size, irx, size_mcemu_irx, &bdm_mcemu_irx, EnablePS2Logo, compatmask);
+    else if (!strcmp(bdmDriver, "udp") && strlen(bdmDriver) == 3)
+        sysLaunchLoaderElf(filename, "BDM_UDP_MODE", irx_size, irx, size_mcemu_irx, &bdm_mcemu_irx, EnablePS2Logo, compatmask);
 }
 
 static config_set_t *bdmGetConfig(int id)

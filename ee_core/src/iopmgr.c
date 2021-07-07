@@ -96,15 +96,17 @@ static void ResetIopSpecial(const char *args, unsigned int arglen)
     DPRINTF("Loading extra IOP modules...\n");
 
 #ifdef __LOAD_DEBUG_MODULES
-    LoadOPLModule(OPL_MODULE_ID_SMSTCPIP, 0, 0, NULL);
-    LoadOPLModule(OPL_MODULE_ID_SMAP, 0, g_ipconfig_len, g_ipconfig);
+    if (GameMode != BDM_UDP_MODE) {
+        LoadOPLModule(OPL_MODULE_ID_SMSTCPIP, 0, 0, NULL);
+        LoadOPLModule(OPL_MODULE_ID_SMAP, 0, g_ipconfig_len, g_ipconfig);
 #ifdef __DECI2_DEBUG
-    LoadOPLModule(OPL_MODULE_ID_DRVTIF, 0, 0, NULL);
-    LoadOPLModule(OPL_MODULE_ID_TIFINET, 0, 0, NULL);
+        LoadOPLModule(OPL_MODULE_ID_DRVTIF, 0, 0, NULL);
+        LoadOPLModule(OPL_MODULE_ID_TIFINET, 0, 0, NULL);
 #else
-    LoadOPLModule(OPL_MODULE_ID_UDPTTY, 0, 0, NULL);
-    LoadOPLModule(OPL_MODULE_ID_IOPTRAP, 0, 0, NULL);
+        LoadOPLModule(OPL_MODULE_ID_UDPTTY, 0, 0, NULL);
+        LoadOPLModule(OPL_MODULE_ID_IOPTRAP, 0, 0, NULL);
 #endif
+    }
 #endif
 
 #ifdef PADEMU
@@ -132,6 +134,9 @@ static void ResetIopSpecial(const char *args, unsigned int arglen)
         case BDM_ILK_MODE:
             LoadOPLModule(OPL_MODULE_ID_ILINK, 0, 0, NULL);
             LoadOPLModule(OPL_MODULE_ID_ILINKBD, 0, 0, NULL);
+            break;
+        case BDM_UDP_MODE:
+            LoadOPLModule(OPL_MODULE_ID_SMAP, 0, 0, NULL);
             break;
     };
 }
