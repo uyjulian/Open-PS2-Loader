@@ -124,6 +124,7 @@ static inline void rpcSCmd_cdreaddvddualinfo(void *buf)
 //-------------------------------------------------------------------------
 static void *cbrpc_cdvdScmds(int fno, void *buf, int size)
 { // CD SCMD RPC callback
+    DPRINTF("SCMD RPC %d\n", fno);
 
     switch (fno) {
         case CD_SCMD_READCLOCK:
@@ -154,7 +155,7 @@ static void *cbrpc_cdvdScmds(int fno, void *buf, int size)
             *(int *)buf = sceCdPowerOff((u32 *)buf);
             break;
         case CD_SCMD_MMODE:
-            *(int *)buf = sceCdMmode(*(int *)buf);
+            *(int *)buf = 1;
             break;
         case CD_SCMD_SETTHREADPRI:
             *(int *)buf = sceCdChangeThreadPriority(*(int *)buf);
@@ -175,6 +176,7 @@ static void *cbrpc_cdvdScmds(int fno, void *buf, int size)
             *(int *)buf = 0;
             break;
     }
+    DPRINTF("SCMD RPC end\n");
 
     return buf;
 }

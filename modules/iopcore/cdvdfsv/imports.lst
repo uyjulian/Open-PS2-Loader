@@ -27,7 +27,6 @@ I_sceCdStStop
 I_sceCdStPause
 I_sceCdStResume
 I_sceCdPowerOff
-I_sceCdMmode
 I_sceCdStSeekF
 I_sceCdReadDiskID
 I_sceCdReadGUID
@@ -76,3 +75,9 @@ thevent_IMPORTS_start
 I_ClearEventFlag
 I_WaitEventFlag
 thevent_IMPORTS_end
+
+
+sysmem_IMPORTS_start
+I_Kprintf
+sysmem_IMPORTS_end
+

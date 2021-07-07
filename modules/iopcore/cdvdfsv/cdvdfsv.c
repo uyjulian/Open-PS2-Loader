@@ -175,9 +175,9 @@ static void cdvdfsv_rpc_sd_th(void *args)
 static void *cbrpc_cdinit(int fno, void *buf, int size)
 { // CD Init RPC callback
     cdvdinit_res_t *r = (cdvdinit_res_t *)buf;
-
+    DPRINTF("sceCdInit RPC\n");
     r->func_ret = sceCdInit(*(int *)buf);
-
+    DPRINTF("sceCdInit RPC end\n");
     r->cdvdfsv_ver = 0x223;
     r->cdvdman_ver = 0x223;
     //r->debug_mode = 0xff;
@@ -188,18 +188,18 @@ static void *cbrpc_cdinit(int fno, void *buf, int size)
 //-------------------------------------------------------------------------
 static void *cbrpc_cddiskready(int fno, void *buf, int size)
 { // CD Disk Ready RPC callback
-
+    DPRINTF("sceCdDiskReady RPC\n");
     *(int *)buf = sceCdDiskReady((*(int *)buf == 0) ? 0 : 1);
-
+    DPRINTF("sceCdDiskReady RPC end\n");
     return buf;
 }
 
 //-------------------------------------------------------------------------
 static void *cbrpc_cddiskready2(int fno, void *buf, int size)
 { // CD Disk Ready2 RPC callback
-
+    DPRINTF("sceCdDiskReady2 RPC\n");
     *(int *)buf = sceCdDiskReady(0);
-
+    DPRINTF("sceCdDiskReady2 RPC end\n");
     return buf;
 }
 
@@ -207,7 +207,7 @@ static void *cbrpc_cddiskready2(int fno, void *buf, int size)
 static void *cbrpc_S596(int fno, void *buf, int size)
 {
     int cdvdman_intr_ef, dummy;
-
+    DPRINTF("S596 RPC\n");
     if (fno == 1) {
         cdvdman_intr_ef = sceCdSC(CDSC_GET_INTRFLAG, &dummy);
         ClearEventFlag(cdvdman_intr_ef, ~4);
@@ -215,6 +215,7 @@ static void *cbrpc_S596(int fno, void *buf, int size)
     }
 
     *(int *)buf = 1;
+    DPRINTF("S596 RPC end\n");
     return buf;
 }
 
@@ -222,7 +223,7 @@ static void *cbrpc_S596(int fno, void *buf, int size)
 static void *cbrpc_shutdown(int fno, void *buf, int size)
 {
     int value;
-
+    DPRINTF("Shutdown RPC\n");
     if (fno == 1) {
         //Terminate operations.
         //Shutdown OPL
@@ -231,6 +232,8 @@ static void *cbrpc_shutdown(int fno, void *buf, int size)
     }
 
     *(int *)buf = 1;
+    
+    DPRINTF("Shutdown RPC end\n");
     return buf;
 }
 

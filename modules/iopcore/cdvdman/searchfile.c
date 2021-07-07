@@ -157,11 +157,15 @@ static int cdvdman_findfile(sceCdlFILE *pcdfile, const char *name, int layer)
     struct dirTocEntry *tocEntryPointer;
     layer_info_t *pLayerInfo;
 
+    DPRINTF("cdvdman_findfile cdvdman_init\n");
+
     cdvdman_init();
 
     if (cdvdman_settings.common.flags & IOPCORE_COMPAT_EMU_DVDDL)
         layer = 0;
     pLayerInfo = (layer != 0) ? &layer_info[1] : &layer_info[0]; //SCE CDVDMAN simply treats a non-zero value as a signal for the 2nd layer.
+
+    DPRINTF("cdvdman_findfile WaitSema\n");
 
     WaitSema(cdvdman_searchfilesema);
 
@@ -178,6 +182,7 @@ static int cdvdman_findfile(sceCdlFILE *pcdfile, const char *name, int layer)
         return 0;
     }
 
+    DPRINTF("cdvdman_findfile cdvdman_locatefile\n");
     tocEntryPointer = cdvdman_locatefile(cdvdman_filepath, pLayerInfo->rootDirtocLBA, pLayerInfo->rootDirtocLength, layer);
     if (tocEntryPointer == NULL) {
         SignalSema(cdvdman_searchfilesema);
@@ -233,6 +238,8 @@ void cdvdman_searchfile_init(void)
     struct dirTocEntry *tocEntryPointer = (struct dirTocEntry *)&cdvdman_buf[0x9c];
     layer_info[0].rootDirtocLBA = tocEntryPointer->fileLBA;
     layer_info[0].rootDirtocLength = tocEntryPointer->length;
+
+    DPRINTF("cdvdman_searchfile_init %d %d %p\n", layer_info[0].rootDirtocLBA, layer_info[0].rootDirtocLength, cdvdman_buf);
 
     // DVD DL support
     if (!(cdvdman_settings.common.flags & IOPCORE_COMPAT_EMU_DVDDL)) {

@@ -84,17 +84,21 @@ static unsigned char fs_inited = 0;
 //--------------------------------------------------------------
 void cdvdman_fs_init(void)
 {
+    DPRINTF("cdvdman_fs_init\n");
     if (fs_inited)
         return;
+    DPRINTF("cdvdman_fs_init fs_inited\n");
 
-    DPRINTF("cdvdman_fs_init\n");
-
+    DPRINTF("cdvdman_fs_init DeviceFSInit\n");
     DeviceFSInit();
-
+    
+    DPRINTF("cdvdman_fs_init memset\n");
     memset(&cdvdman_fdhandles[0], 0, MAX_FDHANDLES * sizeof(FHANDLE));
-
+    
+    DPRINTF("cdvdman_fs_init cdvdman_searchfile_init\n");
     cdvdman_searchfile_init();
 
+    DPRINTF("cdvdman_fs_init end\n");
     fs_inited = 1;
 }
 
@@ -120,8 +124,10 @@ static int cdvdman_open(iop_file_t *f, const char *filename, int mode)
     FHANDLE *fh;
     sceCdlFILE cdfile;
 
+    DPRINTF("cdvdman_open WaitSema\n");
     WaitSema(cdrom_io_sema);
 
+    DPRINTF("cdvdman_open cdvdman_init\n");
     cdvdman_init();
 
     if (f->unit < 2) {
@@ -147,6 +153,8 @@ static int cdvdman_open(iop_file_t *f, const char *filename, int mode)
         r = -ENOENT;
 
     SignalSema(cdrom_io_sema);
+
+    DPRINTF("cdvdman_open bottom r=%d\n", r);
 
     return r;
 }

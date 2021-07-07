@@ -17,9 +17,11 @@ int sceCdSync(int mode)
     if ((mode == 1) || (mode == 17))
         return 1;
 
+    DPRINTF("sceCdSync Before sync flag\n");
     while (sync_flag)
         WaitEventFlag(cdvdman_stat.intr_ef, 1, WEF_AND, NULL);
 
+    DPRINTF("sceCdSync After sync flag\n");
     return 0;
 }
 

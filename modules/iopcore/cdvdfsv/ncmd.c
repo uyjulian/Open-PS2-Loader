@@ -384,6 +384,8 @@ static void *cbrpc_cdvdNcmds(int fno, void *buf, int size)
 { // CD NCMD RPC callback
     int sc_param;
 
+    DPRINTF("NCMD RPC %d\n", fno);
+
     sceCdSC(CDSC_IO_SEMA, &fno);
 
     switch (fno) {
@@ -433,6 +435,7 @@ static void *cbrpc_cdvdNcmds(int fno, void *buf, int size)
     sc_param = 0;
     sceCdSC(CDSC_IO_SEMA, &sc_param);
 
+    DPRINTF("NCMD RPC end\n");
     return buf;
 }
 

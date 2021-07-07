@@ -106,6 +106,8 @@ void cdvdman_init(void)
     iop_thread_t ThreadData;
 #endif
 
+    DPRINTF("cdvdman_init\n");
+
     if (!cdvdman_cdinited) {
         cdvdman_stat.err = SCECdErNO;
 
@@ -124,11 +126,15 @@ void cdvdman_init(void)
 
         cdvdman_cdinited = 1;
     }
+
+    DPRINTF("cdvdman_init end\n");
 }
 
 int sceCdInit(int init_mode)
 {
+    DPRINTF("sceCdInit\n");
     cdvdman_init();
+    DPRINTF("sceCdInit end\n");
     return 1;
 }
 
@@ -144,7 +150,7 @@ static int cdvdman_read_sectors(u32 lsn, unsigned int sectors, void *buf)
     unsigned int SectorsToRead, remaining;
     void *ptr;
 
-    DPRINTF("cdvdman_read lsn=%lu sectors=%u buf=%p\n", lsn, sectors, buf);
+    DPRINTF("cdvdman_read lsn=%lu sectors=%u buf=%p isinterupt=%u\n", lsn, sectors, buf, QueryIntrContext());
 
     cdvdman_stat.err = SCECdErNO;
 
@@ -324,6 +330,7 @@ int cdvdman_SyncRead(u32 lsn, u32 sectors, void *buf)
     cdvdman_cb_event(SCECdFuncRead);
     sync_flag = 0;
     SetEventFlag(cdvdman_stat.intr_ef, 9);
+    DPRINTF("cdvdman_SyncRead: read finished...\n");
 
     return 1;
 }
@@ -539,12 +546,14 @@ static unsigned int event_alarm_cb(void *args)
 static void cdvdman_signal_read_end(void)
 {
     sync_flag = 0;
+    DPRINTF("Read finished async\n");
     SetEventFlag(cdvdman_stat.intr_ef, 9);
 }
 
 static void cdvdman_signal_read_end_intr(void)
 {
     sync_flag = 0;
+    DPRINTF("Read finished async interupt\n");
     iSetEventFlag(cdvdman_stat.intr_ef, 9);
 }
 

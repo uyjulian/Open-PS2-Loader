@@ -47,6 +47,7 @@ static void *cbrpc_cdsearchfile(int fno, void *buf, int size)
     SearchFilePktl_t *pktl = (SearchFilePktl_t *)buf;
     int pktsize;
 
+    DPRINTF("Searchfile RPC\n");
     if (size == sizeof(SearchFilePkt2_t)) {
         ee_addr = (void *)pkt2->dest; // Search File: Called from Not Dual_layer Version
         p = (void *)&pkt2->name[0];
@@ -72,6 +73,7 @@ static void *cbrpc_cdsearchfile(int fno, void *buf, int size)
 
     *(int *)buf = r;
 
+    DPRINTF("Searchfile RPC end\n");
     return buf;
 }
 

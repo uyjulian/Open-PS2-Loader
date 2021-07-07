@@ -12,5 +12,6 @@
 #include <thbase.h>
 #include <thevent.h>
 #include <thsemap.h>
+#include <sysmem.h>
 
 #endif
