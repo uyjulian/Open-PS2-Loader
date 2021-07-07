@@ -91,7 +91,7 @@ IOP_OBJS =	iomanx.o filexio.o ps2fs.o usbd.o bdmevent.o \
 		httpclient-iop.o netman.o ps2ips.o \
 		bdm_mcemu.o hdd_mcemu.o smb_mcemu.o \
 		iremsndpatch.o apemodpatch.o f2techioppatch.o cleareffects.o resetspu.o \
-		libsd.o audsrv.o
+		libsd.o audsrv.o smap_udpbd_mini.o
 
 EECORE_OBJS = ee_core.o ioprp.o util.o \
 		elfldr.o udnl.o imgdrv.o eesync.o \
@@ -273,6 +273,8 @@ clean:
 	$(MAKE) -C modules/network/SMSTCPIP clean
 	echo " -in-game SMAP"
 	$(MAKE) -C modules/network/smap-ingame clean
+	echo " -in-game SMAP UDPBD"
+	$(MAKE) -C modules/network/smap-udpbd-mini clean
 	echo " -smbinit"
 	$(MAKE) -C modules/network/smbinit clean
 	echo " -nbns"
@@ -538,6 +540,12 @@ $(EE_ASM_DIR)usbmass_bd.s: $(PS2SDK)/iop/irx/usbmass_bd_mini.irx | $(EE_ASM_DIR)
 $(EE_ASM_DIR)IEEE1394_bd.s: $(PS2SDK)/iop/irx/IEEE1394_bd_mini.irx | $(EE_ASM_DIR)
 	$(BIN2S) $< $@ IEEE1394_bd_irx
 endif
+
+modules/network/smap-udpbd-mini/smap-udpbd-mini.irx: modules/network/smap-udpbd-mini
+	$(MAKE) -C $<
+
+$(EE_ASM_DIR)smap_udpbd_mini.s: modules/network/smap-udpbd-mini/smap-udpbd-mini.irx | $(EE_ASM_DIR)
+	$(BIN2S) $< $@ smap_udpbd_mini_irx
 
 modules/bdmevent/bdmevent.irx: modules/bdmevent
 	$(MAKE) -C $<
