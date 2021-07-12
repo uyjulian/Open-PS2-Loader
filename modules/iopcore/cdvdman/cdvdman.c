@@ -61,8 +61,10 @@ unsigned char sync_flag;
 unsigned char cdvdman_cdinited = 0;
 static unsigned int ReadPos = 0; /* Current buffer offset in 2048-byte sectors. */
 
+#if 0
 #ifdef __USE_DEV9
 static int POFFThreadID;
+#endif
 #endif
 
 typedef void (*oplShutdownCb_t)(void);
@@ -83,14 +85,17 @@ static void oplShutdown(int poff)
     DeviceUnmount();
     if (poff) {
         DeviceStop();
+#if 0
 #ifdef __USE_DEV9
         dev9Shutdown();
+#endif
 #endif
         sceCdPowerOff(&stat);
     }
 }
 
 //-------------------------------------------------------------------------
+#if 0
 #ifdef __USE_DEV9
 static void cdvdman_poff_thread(void *arg)
 {
@@ -99,11 +104,14 @@ static void cdvdman_poff_thread(void *arg)
     oplShutdown(1);
 }
 #endif
+#endif
 
 void cdvdman_init(void)
 {
+#if 0
 #ifdef __USE_DEV9
     iop_thread_t ThreadData;
+#endif
 #endif
 
     DPRINTF("cdvdman_init\n");
@@ -113,6 +121,7 @@ void cdvdman_init(void)
 
         cdvdman_fs_init();
 
+#if 0
 #ifdef __USE_DEV9
         if (cdvdman_settings.common.flags & IOPCORE_ENABLE_POFF) {
             ThreadData.attr = TH_C;
@@ -123,6 +132,7 @@ void cdvdman_init(void)
             StartThread(POFFThreadID = CreateThread(&ThreadData), NULL);
         }
 #endif
+#endif
 
         cdvdman_cdinited = 1;
     }
@@ -130,11 +140,32 @@ void cdvdman_init(void)
     DPRINTF("cdvdman_init end\n");
 }
 
+static u32 cdvdman_ComputeTimeDiff(const iop_sys_clock_t *pStart, const iop_sys_clock_t *pEnd)
+{
+    iop_sys_clock_t Diff;
+    u32 iSec, iUSec, iDiff;
+
+    Diff.lo = pEnd->lo - pStart->lo;
+    Diff.hi = pEnd->hi - pStart->hi - (pStart->lo > pEnd->lo);
+
+    SysClock2USec(&Diff, &iSec, &iUSec);
+    iDiff = (iSec * 1000) + (iUSec / 1000);
+
+    return ((iDiff != 0) ? iDiff : 1);
+}
+
 int sceCdInit(int init_mode)
 {
+    iop_sys_clock_t Start;
+    iop_sys_clock_t End;
+    u32 Diff;
     DPRINTF("sceCdInit\n");
+    GetSystemTime(&Start);
     cdvdman_init();
-    DPRINTF("sceCdInit end\n");
+    GetSystemTime(&End);
+
+    Diff = cdvdman_ComputeTimeDiff(&Start, &End);
+    DPRINTF("sceCdInit end %lu\n", Diff);
     return 1;
 }
 
@@ -145,13 +176,33 @@ static unsigned int cdvdemu_read_end_cb(void *arg)
     return 0;
 }
 
+u32 cdvdman_crc32_for_byte(u32 r) {
+    for(int j = 0; j < 8; ++j)
+        r = (r & 1? 0: (u32)0xEDB88320L) ^ r >> 1;
+    return r ^ (u32)0xFF000000L;
+}
+
+void cdvdman_crc32(const void *data, u32 n_bytes, u32* crc) {
+    static u32 table[0x100];
+    if(!*table)
+        for(u32 i = 0; i < 0x100; ++i)
+            table[i] = cdvdman_crc32_for_byte(i);
+    for(u32 i = 0; i < n_bytes; ++i)
+        *crc = table[(u8)*crc ^ ((u8*)data)[i]] ^ *crc >> 8;
+}
+
 static int cdvdman_read_sectors(u32 lsn, unsigned int sectors, void *buf)
 {
     unsigned int SectorsToRead, remaining;
     void *ptr;
+    iop_sys_clock_t Start;
+    iop_sys_clock_t End;
+    u32 Diff;
+    u32 llsn = lsn;
 
     DPRINTF("cdvdman_read lsn=%lu sectors=%u buf=%p isinterupt=%u\n", lsn, sectors, buf, QueryIntrContext());
 
+    GetSystemTime(&Start);
     cdvdman_stat.err = SCECdErNO;
 
     for (ptr = buf, remaining = sectors; remaining > 0;) {
@@ -209,6 +260,19 @@ static int cdvdman_read_sectors(u32 lsn, unsigned int sectors, void *buf)
             WaitEventFlag(cdvdman_stat.intr_ef, 0x1000, WEF_AND, NULL);
         }
     }
+    GetSystemTime(&End);
+
+    Diff = cdvdman_ComputeTimeDiff(&Start, &End);
+    u32 crc = 0;
+    cdvdman_crc32(buf, sectors * 2048, &crc);
+    DPRINTF("cdvdman_read ts=%lu crc=%08lx\n", Diff, crc);
+#if 0
+    if (llsn == 6831)
+    {
+        SleepThread();
+        __asm("break");
+    }
+#endif
 
     return (cdvdman_stat.err == SCECdErNO ? 0 : 1);
 }
@@ -218,7 +282,6 @@ static int cdvdman_read(u32 lsn, u32 sectors, void *buf)
     cdvdman_stat.status = SCECdStatRead;
 
     buf = (void *)PHYSADDR(buf);
-#ifdef HDD_DRIVER //As of now, only the ATA interface requires this. We do this here to share cdvdman_buf.
     if ((u32)(buf)&3) {
         //For transfers to unaligned buffers, a double-copy is required to avoid stalling the device's DMA channel.
         WaitSema(cdvdman_searchfilesema);
@@ -244,11 +307,8 @@ static int cdvdman_read(u32 lsn, u32 sectors, void *buf)
 
         SignalSema(cdvdman_searchfilesema);
     } else {
-#endif
         cdvdman_read_sectors(lsn, sectors, buf);
-#ifdef HDD_DRIVER
     }
-#endif
 
     ReadPos = 0; /* Reset the buffer offset indicator. */
 
@@ -546,14 +606,12 @@ static unsigned int event_alarm_cb(void *args)
 static void cdvdman_signal_read_end(void)
 {
     sync_flag = 0;
-    DPRINTF("Read finished async\n");
     SetEventFlag(cdvdman_stat.intr_ef, 9);
 }
 
 static void cdvdman_signal_read_end_intr(void)
 {
     sync_flag = 0;
-    DPRINTF("Read finished async interupt\n");
     iSetEventFlag(cdvdman_stat.intr_ef, 9);
 }
 
@@ -626,11 +684,13 @@ static int intrh_cdrom(void *common)
         iSetEventFlag(cdvdman_stat.intr_ef, 0x14); //Notify FILEIO and CDVDFSV of the power-off event.
 
 //Call power-off callback here. OPL doesn't handle one, so do nothing.
+#if 0
 #ifdef __USE_DEV9
         if (cdvdman_settings.common.flags & IOPCORE_ENABLE_POFF) {
             //If IGR is disabled, switch off the console.
             iWakeupThread(POFFThreadID);
         }
+#endif
 #endif
     } else
         CDVDreg_PWOFF = CDL_DATA_COMPLETE; //Acknowledge interrupt
