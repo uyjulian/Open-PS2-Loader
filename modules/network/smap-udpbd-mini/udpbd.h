@@ -39,6 +39,7 @@ typedef struct
 } __attribute__((packed)) udpbd_pkt_t;
 
 int udpbd_init(void);
+int udpbd_register_bd(void);
 void udpbd_rx(u16 pointer);
 
 #endif

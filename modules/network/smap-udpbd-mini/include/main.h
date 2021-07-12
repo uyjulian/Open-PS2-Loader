@@ -13,7 +13,6 @@ struct SmapDriverData
 {
     volatile u8 *smap_regbase;
     volatile u8 *emac3_regbase;
-    unsigned int TxBufferSpaceAvailable;
     unsigned char NumPacketsInTx;
     unsigned char TxBDIndex;
     unsigned char TxDNVBDIndex;
@@ -40,7 +39,7 @@ struct SmapDriverData
 #define SMAP_EVENT_LINK_CHECK 0x10
 
 /* Function prototypes */
-int smap_init(int argc, char *argv[]);
+int smap_init(void); // (int argc, char *argv[]);
 int SMAPStart(void);
 int SMAPPause(void);
 int SMAPUnpause(void);

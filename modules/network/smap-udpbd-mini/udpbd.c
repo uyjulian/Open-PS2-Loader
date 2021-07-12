@@ -17,9 +17,9 @@
 static struct block_device g_udpbd;
 static udpbd_pkt_t g_pkt;
 static u8 g_cmdid = 0;
-static int g_read_done = 0;
+static vu32 g_read_done = 0;
 static int g_read_cmdpkt = 0;
-static int bdm_connected = 0;
+static volatile int bdm_connected = 0;
 static void *g_buffer;
 static unsigned int g_read_size;
 static unsigned int g_errno = 0;
@@ -29,7 +29,10 @@ static unsigned int _udpbd_read_timeout(void *arg)
 {
     g_read_size = 0;
     g_errno = 1;
+#if 0
     iSetEventFlag(g_read_done, 2);
+#endif
+    g_read_done = 2;
     return 0;
 }
 
@@ -97,7 +100,12 @@ static int _udpbd_read(struct block_device *bd, u32 sector, void *buffer, u16 co
     SetAlarm(&clock, _udpbd_read_timeout, NULL);
 
     //wait for data...
+    while (!g_read_done) {};
+    EFBits = g_read_done;
+    g_read_done = 0;
+#if 0
     WaitEventFlag(g_read_done, 2 | 1, WEF_OR | WEF_CLEAR, &EFBits);
+#endif
 
     // Cancel alarm
     CancelAlarm(_udpbd_read_timeout, NULL);
@@ -138,7 +146,13 @@ static int udpbd_read(struct block_device *bd, u32 sector, void *buffer, u16 cou
     M_DEBUG("%s: sector=%d, count=%d\n", __func__, sector, count);
 
     if (bdm_connected == 0)
-        return -EIO;
+    {
+        int result;
+        if ((result = smap_init()) < 0) {
+            M_DEBUG("smap: smap_init -> %d\n", result);
+            return -EIO;
+        }
+    }
 
     SMAPUnpause();
     while (count_left > 0) {
@@ -160,6 +174,7 @@ static int udpbd_read(struct block_device *bd, u32 sector, void *buffer, u16 cou
 
         count_left -= count_block;
         sector += count_block;
+        buffer += count_block * 512;
     }
     SMAPPause();
 
@@ -195,18 +210,11 @@ int udpbd_init(void)
     EventFlagData.attr = 0;
     EventFlagData.option = 0;
     EventFlagData.bits = 0;
+#if 0
     if (g_read_done <= 0)
         g_read_done = CreateEventFlag(&EventFlagData);
-
-    g_udpbd.name = "udp";
-    g_udpbd.devNr = 0;
-    g_udpbd.parNr = 0;
-    g_udpbd.sectorOffset = 0;
-    g_udpbd.priv = NULL;
-    g_udpbd.read = udpbd_read;
-    g_udpbd.write = udpbd_write;
-    g_udpbd.flush = udpbd_flush;
-    g_udpbd.stop = udpbd_stop;
+#endif
+    g_read_done = 0;
 
     udp_packet_init((udp_packet_t *)&g_pkt, UDPBD_PORT);
 
@@ -220,6 +228,30 @@ int udpbd_init(void)
     g_pkt.bd.par2 = 0;
     udp_packet_send((udp_packet_t *)&g_pkt, sizeof(udpbd_header_t) + 2);
 
+    while (!bdm_connected) {}
+#ifndef NO_BDM
+    debug_smap();
+#endif
+
+    return 0;
+}
+
+int udpbd_register_bd(void)
+{
+    g_udpbd.name = "udp";
+    g_udpbd.devNr = 0;
+    g_udpbd.parNr = 0;
+    g_udpbd.sectorOffset = 0;
+    g_udpbd.priv = NULL;
+    g_udpbd.read = udpbd_read;
+    g_udpbd.write = udpbd_write;
+    g_udpbd.flush = udpbd_flush;
+    g_udpbd.stop = udpbd_stop;
+    g_udpbd.sectorSize = 512;
+    g_udpbd.sectorCount = 8388608;
+#ifndef NO_BDM
+    bdm_connect_bd(&g_udpbd);
+#endif
     return 0;
 }
 
@@ -242,7 +274,7 @@ static int UDPBDCopyFromFIFOWithDMA(volatile u8 *smap_regbase, void *buffer, int
 
         // Transfer in 128-byte (32x4) blocks
         // Transfer in 0x80-byte (0x20 by 0x4) blocks
-        dmac_request(IOP_DMAC_DEV9, buffer, 0x20, blocks, DMAC_TO_MEM);
+        dmac_request(IOP_DMAC_DEV9, buffer, 0x10, blocks, DMAC_TO_MEM);
         dmac_transfer(IOP_DMAC_DEV9);
 
         /* Wait for DMA to complete. Do not use a semaphore as thread switching hurts throughput greatly.  */
@@ -273,10 +305,6 @@ void udpbd_rx(u16 pointer)
             if (bdm_connected == 0) {
                 g_udpbd.sectorSize = hdr.par1;
                 g_udpbd.sectorCount = hdr.par2;
-#ifndef NO_BDM
-                bdm_connect_bd(&g_udpbd);
-                debug_smap();
-#endif
                 SMAPPause();
                 bdm_connected = 1;
             }
@@ -288,7 +316,10 @@ void udpbd_rx(u16 pointer)
                     // Error, wakeup caller
                     g_read_size = 0;
                     g_errno = 2;
+#if 0
                     iSetEventFlag(g_read_done, 2);
+#endif
+                    g_read_done = 2;
                     break;
                 }
                 g_read_cmdpkt++;
@@ -298,18 +329,24 @@ void udpbd_rx(u16 pointer)
                     // Error, wakeup caller
                     g_read_size = 0;
                     g_errno = 3;
+#if 0
                     iSetEventFlag(g_read_done, 2);
+#endif
+                    g_read_done = 2;
                     break;
                 }
 
                 // Directly DMA the packet data into the user buffer
-                UDPBDCopyFromFIFOWithDMA(smap_regbase, (u8 *)g_buffer + ((hdr.cmdpkt - 1) * UDPBD_MAX_DATA), (hdr.par1 / 128));
+                UDPBDCopyFromFIFOWithDMA(smap_regbase, (u8 *)g_buffer + ((g_read_cmdpkt - 2) * UDPBD_MAX_DATA), (hdr.par1 / 64));
                 //dev9DmaTransfer(1, (u8*)g_buffer + ((hdr.cmdpkt-1) * UDPBD_MAX_DATA), (hdr.par1 / 128)<<16|0x20, DMAC_TO_MEM);
 
                 g_read_size -= hdr.par1;
                 if (g_read_size == 0) {
                     // Done, wakeup caller
+#if 0
                     iSetEventFlag(g_read_done, 1);
+#endif
+                    g_read_done = 1;
                     break;
                 }
             }

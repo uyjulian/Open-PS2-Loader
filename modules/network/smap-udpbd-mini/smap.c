@@ -515,7 +515,7 @@ fail_end:
     return -1;
 }
 
-int smap_init(int argc, char *argv[])
+int smap_init(void) // (int argc, char *argv[])
 {
     int result, i;
     u16 eeprom_data[4], checksum16;
@@ -528,6 +528,7 @@ int smap_init(int argc, char *argv[])
 
     printf("smap_init top\n");
     checksum16 = 0;
+#if 0
     argc--;
     argv++;
     while (argc > 0) {
@@ -550,6 +551,7 @@ int smap_init(int argc, char *argv[])
 
     if (argc != 0)
         return -1;
+#endif
 
     SmapDriverData.smap_regbase = smap_regbase;
     SmapDriverData.emac3_regbase = emac3_regbase;
@@ -597,8 +599,6 @@ int smap_init(int argc, char *argv[])
         rx_bd[i].pointer = 0;
     }
 
-    SmapDriverData.TxBufferSpaceAvailable = SMAP_TX_BUFSIZE;
-
     SMAP_REG16(SMAP_R_INTR_CLR) = DEV9_SMAP_ALL_INTR_MASK;
 
     /* Retrieve the MAC address and verify it's integrity. */
@@ -616,8 +616,7 @@ int smap_init(int argc, char *argv[])
         return -5;
 
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_MODE1, SMAP_E3_FDX_ENABLE | SMAP_E3_IGNORE_SQE | SMAP_E3_MEDIA_100M | SMAP_E3_RXFIFO_2K | SMAP_E3_TXFIFO_1K | SMAP_E3_TXREQ0_SINGLE | SMAP_E3_TXREQ1_SINGLE);
-    //Tx FIFO request priority. Low: 7*8=56, urgent: 15*8=120.
-    SMAP_EMAC3_SET32(SMAP_R_EMAC3_TxMODE1, (7 & SMAP_E3_TX_LOW_REQ_MSK) << SMAP_E3_TX_LOW_REQ_BITSFT | (15 & SMAP_E3_TX_URG_REQ_MSK) << SMAP_E3_TX_URG_REQ_BITSFT);
+    SMAP_EMAC3_SET32(SMAP_R_EMAC3_TxMODE1, 7 << SMAP_E3_TX_LOW_REQ_BITSFT | 15 << SMAP_E3_TX_URG_REQ_BITSFT);
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_RxMODE, SMAP_E3_RX_STRIP_PAD | SMAP_E3_RX_STRIP_FCS | SMAP_E3_RX_INDIVID_ADDR | SMAP_E3_RX_BCAST | SMAP_E3_RX_MCAST);
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_INTR_STAT, SMAP_E3_INTR_TX_ERR_0 | SMAP_E3_INTR_SQE_ERR_0 | SMAP_E3_INTR_DEAD_0);
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_INTR_ENABLE, SMAP_E3_INTR_TX_ERR_0 | SMAP_E3_INTR_SQE_ERR_0 | SMAP_E3_INTR_DEAD_0);
@@ -629,16 +628,15 @@ int smap_init(int argc, char *argv[])
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_ADDR_LO, mac_address);
 
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_PAUSE_TIMER, 0xFFFF);
+
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_GROUP_HASH1, 0);
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_GROUP_HASH2, 0);
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_GROUP_HASH3, 0);
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_GROUP_HASH4, 0);
 
     SMAP_EMAC3_SET32(SMAP_R_EMAC3_INTER_FRAME_GAP, 4);
-    //Tx threshold, (12+1)*64=832.
-    SMAP_EMAC3_SET32(SMAP_R_EMAC3_TX_THRESHOLD, (12 & SMAP_E3_TX_THRESHLD_MSK) << SMAP_E3_TX_THRESHLD_BITSFT);
-    //Rx watermark, low: 16*8=128, high: 128*8=1024.
-    SMAP_EMAC3_SET32(SMAP_R_EMAC3_RX_WATERMARK, (16 & SMAP_E3_RX_LO_WATER_MSK) << SMAP_E3_RX_LO_WATER_BITSFT | (128 & SMAP_E3_RX_HI_WATER_MSK) << SMAP_E3_RX_HI_WATER_BITSFT);
+    SMAP_EMAC3_SET32(SMAP_R_EMAC3_TX_THRESHOLD, 12 << SMAP_E3_TX_THRESHLD_BITSFT);
+    SMAP_EMAC3_SET32(SMAP_R_EMAC3_RX_WATERMARK, 16 << SMAP_E3_RX_LO_WATER_BITSFT | 128 << SMAP_E3_RX_HI_WATER_BITSFT);
 
     printf("smap_init dev9RegisterIntrCb\n");
     // Unlike the SONY original, register the interrupt handler for only RXEND and EMAC3.
@@ -658,17 +656,11 @@ int SMAPGetMACAddress(u8 *buffer)
 {
     u32 mac_address_lo, mac_address_hi;
     volatile u8 *emac3_regbase;
-    int OldState;
 
     emac3_regbase = SmapDriverData.emac3_regbase;
 
-    CpuSuspendIntr(&OldState);
-
     mac_address_hi = SMAP_EMAC3_GET32(SMAP_R_EMAC3_ADDR_HI);
     mac_address_lo = SMAP_EMAC3_GET32(SMAP_R_EMAC3_ADDR_LO);
-
-    CpuResumeIntr(OldState);
-
     buffer[0] = mac_address_hi >> 8;
     buffer[1] = mac_address_hi;
     buffer[2] = mac_address_lo >> 24;

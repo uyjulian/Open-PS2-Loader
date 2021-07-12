@@ -6,6 +6,7 @@
 
 #include "main.h"
 #include "xfer.h"
+#include "udpbd.h"
 
 IRX_ID("SMAP_driver", 0x2, 0x19);
 
@@ -29,10 +30,13 @@ int _start(int argc, char *argv[])
 		return MODULE_NO_RESIDENT_END;
 	} */
 
+#if 0
     if ((result = smap_init(argc, argv)) < 0) {
         DEBUG_PRINTF("smap: smap_init -> %d\n", result);
         return MODULE_NO_RESIDENT_END;
     }
+#endif
+    udpbd_register_bd();
 
     return MODULE_RESIDENT_END;
 }

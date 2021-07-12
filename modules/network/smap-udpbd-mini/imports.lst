@@ -31,12 +31,6 @@ I_bzero
 I_look_ctype_table
 sysclib_IMPORTS_end
 
-intrman_IMPORTS_start
-I_CpuSuspendIntr
-I_CpuResumeIntr
-I_QueryIntrContext
-intrman_IMPORTS_end
-
 loadcore_IMPORTS_start
 I_RegisterLibraryEntries
 I_ReleaseLibraryEntries
