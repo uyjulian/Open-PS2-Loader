@@ -13,6 +13,9 @@ extern int size_audsrv_irx;
 extern void *bdm_irx;
 extern int size_bdm_irx;
 
+extern void *smap_udpbd_mini_irx;
+extern int size_smap_udpbd_mini_irx;
+
 extern void *bdm_cdvdman_irx;
 extern int size_bdm_cdvdman_irx;
 
