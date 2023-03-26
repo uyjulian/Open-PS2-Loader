@@ -96,6 +96,10 @@ static void bdmLoadBlockDeviceModules(void)
 
         mx4sioModLoaded = 1;
     }
+
+    // Load UDPBD Block Device drivers
+    sysInitDev9();
+    sysLoadModuleBuffer(&smap_udpbd_irx, size_smap_udpbd_irx, 0, NULL);
 }
 
 void bdmLoadModules(void)
@@ -444,6 +448,10 @@ void bdmLaunchGame(int id, config_set_t *configSet)
     } else if (!strcmp(bdmDriver, "sdc") && strlen(bdmDriver) == 3) {
         settings->common.fakemodule_flags |= 0;
         sysLaunchLoaderElf(filename, "BDM_M4S_MODE", irx_size, irx, size_mcemu_irx, bdm_mcemu_irx, EnablePS2Logo, compatmask);
+    } else if (!strcmp(bdmDriver, "udp") && strlen(bdmDriver) == 3) {
+        settings->common.fakemodule_flags |= FAKE_MODULE_FLAG_DEV9;
+        settings->common.fakemodule_flags |= FAKE_MODULE_FLAG_SMAP;
+        sysLaunchLoaderElf(filename, "BDM_UDP_MODE", irx_size, irx, size_mcemu_irx, bdm_mcemu_irx, EnablePS2Logo, compatmask);
     }
 }
 

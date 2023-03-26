@@ -81,7 +81,8 @@ EECORE_OBJS = ee_core.o ioprp.o util.o \
 		udnl.o imgdrv.o eesync.o \
 		bdm_cdvdman.o IOPRP_img.o smb_cdvdman.o \
 		hdd_cdvdman.o hdd_hdpro_cdvdman.o cdvdfsv.o \
-		ingame_smstcpip.o smap_ingame.o smbman.o smbinit.o
+		ingame_smstcpip.o smap_ingame.o smbman.o smbinit.o \
+		smap_udpbd.o
 
 PNG_ASSETS = load0 load1 load2 load3 load4 load5 load6 load7 usb usb_bd ilk_bd \
 	m4s_bd hdd eth app cross triangle circle square select start left right up down \
@@ -562,6 +563,9 @@ modules/network/smap-ingame/smap.irx: modules/network/smap-ingame
 
 $(EE_ASM_DIR)smap_ingame.s: modules/network/smap-ingame/smap.irx | $(EE_ASM_DIR)
 	$(BIN2S) $< $@ smap_ingame_irx
+
+$(EE_ASM_DIR)smap_udpbd.s: $(PS2SDK)/iop/irx/smap-none.irx | $(EE_ASM_DIR)
+	$(BIN2S) $< $@ smap_udpbd_irx
 
 $(EE_ASM_DIR)smap.s: $(PS2SDK)/iop/irx/smap.irx | $(EE_ASM_DIR)
 	$(BIN2S) $< $@ smap_irx

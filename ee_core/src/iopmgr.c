@@ -136,6 +136,9 @@ static void ResetIopSpecial(const char *args, unsigned int arglen)
         case BDM_M4S_MODE:
             LoadOPLModule(OPL_MODULE_ID_MX4SIOBD, 0, 0, NULL);
             break;
+        case BDM_UDP_MODE:
+            LoadOPLModule(OPL_MODULE_ID_SMAP, 0, 0, NULL);
+            break;
     };
 }
 
