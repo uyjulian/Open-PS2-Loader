@@ -19,6 +19,8 @@
 #include "include/sound.h"
 #include <assert.h>
 
+//#define CATCH_EXCEPTIONS_TEST 1
+
 enum MENU_IDs {
     MENU_SETTINGS = 0,
     MENU_GFX_SETTINGS,
@@ -32,7 +34,11 @@ enum MENU_IDs {
     MENU_ABOUT,
     MENU_SAVE_CHANGES,
     MENU_EXIT,
-    MENU_POWER_OFF
+    MENU_POWER_OFF,
+
+#ifdef CATCH_EXCEPTIONS_TEST
+    MENU_CRASH_NULLDEREF,
+#endif
 };
 
 enum GAME_MENU_IDs {
@@ -76,6 +82,7 @@ static submenu_list_t *appMenu;
 static submenu_list_t *appMenuCurrent;
 
 static s32 menuSemaId;
+static s32 menuListSemaId;
 static ee_sema_t menuSema;
 
 static void menuRenameGame(submenu_list_t **submenu)
@@ -93,14 +100,20 @@ static void menuRenameGame(submenu_list_t **submenu)
         if (support->itemRename) {
             if (menuCheckParentalLock() == 0) {
                 sfxPlay(SFX_MESSAGE);
-                int nameLength = support->itemGetNameLength(selected_item->item->current->item.id);
+                int nameLength = support->itemGetNameLength(support, selected_item->item->current->item.id);
                 char newName[nameLength];
                 strncpy(newName, selected_item->item->current->item.text, nameLength);
                 if (guiShowKeyboard(newName, nameLength)) {
                     guiSwitchScreen(GUI_SCREEN_MAIN);
                     submenuDestroy(submenu);
-                    support->itemRename(selected_item->item->current->item.id, newName);
-                    ioPutRequest(IO_MENU_UPDATE_DEFFERED, &support->mode);
+
+                    // Only rename the file if the name changed, trying to rename a file with a file name that hasn't changed can cause the file
+                    // to be deleted on certain file systems.
+                    if (strcmp(newName, selected_item->item->current->item.text) != 0 || strlen(newName) != strlen(selected_item->item->current->item.text))
+                    {
+                        support->itemRename(support, selected_item->item->current->item.id, newName);
+                        ioPutRequest(IO_MENU_UPDATE_DEFFERED, &support->mode);
+                    }
                 }
             }
         }
@@ -124,7 +137,7 @@ static void menuDeleteGame(submenu_list_t **submenu)
                 if (guiMsgBox(_l(_STR_DELETE_WARNING), 1, NULL)) {
                     guiSwitchScreen(GUI_SCREEN_MAIN);
                     submenuDestroy(submenu);
-                    support->itemDelete(selected_item->item->current->item.id);
+                    support->itemDelete(support, selected_item->item->current->item.id);
                     ioPutRequest(IO_MENU_UPDATE_DEFFERED, &support->mode);
                 }
             }
@@ -138,7 +151,7 @@ static void _menuLoadConfig()
     WaitSema(menuSemaId);
     if (!itemConfig) {
         item_list_t *list = selected_item->item->userdata;
-        itemConfig = list->itemGetConfig(itemConfigId);
+        itemConfig = list->itemGetConfig(list, itemConfigId);
     }
     actionStatus = 0;
     SignalSema(menuSemaId);
@@ -220,6 +233,10 @@ static void menuInitMainMenu(void)
     submenuAppendItem(&mainMenu, -1, NULL, MENU_EXIT, _STR_EXIT);
     submenuAppendItem(&mainMenu, -1, NULL, MENU_POWER_OFF, _STR_POWEROFF);
 
+#ifdef CATCH_EXCEPTIONS_TEST
+    submenuAppendItem(&mainMenu, -1, "Null De-ref", MENU_CRASH_NULLDEREF, -1);
+#endif
+
     mainMenuCurrent = mainMenu;
 }
 
@@ -287,6 +304,7 @@ void menuInit()
     menuSema.max_count = 1;
     menuSema.option = 0;
     menuSemaId = CreateSema(&menuSema);
+    menuListSemaId = CreateSema(&menuSema);
 }
 
 void menuEnd()
@@ -316,6 +334,7 @@ void menuEnd()
     }
 
     DeleteSema(menuSemaId);
+    DeleteSema(menuListSemaId);
 }
 
 static menu_list_t *AllocMenuItem(menu_item_t *item)
@@ -335,9 +354,21 @@ void menuAppendItem(menu_item_t *item)
 {
     assert(item);
 
+#ifdef __DEBUG
+    item_list_t* pSupport = (item_list_t*)item->userdata;
+    if (pSupport->itemGetPrefix != NULL)
+        LOG("Appending menu item: %s\n", pSupport->itemGetPrefix(pSupport));
+    else
+        LOG("Appending menu item: mode=%d\n", pSupport->mode);
+#endif
+
+    WaitSema(menuListSemaId);
+
     if (menu == NULL) {
         menu = AllocMenuItem(item);
         selected_item = menu;
+
+        SignalSema(menuListSemaId);
         return;
     }
 
@@ -353,6 +384,31 @@ void menuAppendItem(menu_item_t *item)
     // link
     cur->next = newitem;
     newitem->prev = cur;
+
+    SignalSema(menuListSemaId);
+
+#ifdef __DEBUG
+    if (pSupport->itemGetPrefix != NULL)
+        LOG("Appending menu item: %s done\n", pSupport->itemGetPrefix(pSupport));
+    else
+        LOG("Appending menu item: mode=%d done\n", pSupport->mode);
+#endif
+}
+
+void refreshMenuPosition()
+{
+    // Find the first menu in the list that is visible and set it as the active menu.
+    menu_list_t* pCur = menu;
+    while (pCur->item->visible == 0 && pCur->next != NULL)
+        pCur = pCur->next;
+
+    if (pCur == NULL || pCur->item->visible == 0)
+    {
+        // No visible menu was found, just set the current menu to the first one in the list.
+        selected_item = menu;
+    }
+    else
+        selected_item = pCur;
 }
 
 void submenuRebuildCache(submenu_list_t *submenu)
@@ -570,8 +626,13 @@ void submenuSort(submenu_list_t **submenu)
 
 static void menuNextH()
 {
-    if (selected_item->next != NULL) {
-        selected_item = selected_item->next;
+    struct menu_list* pNext = selected_item->next;
+    while (pNext != NULL && pNext->item->visible == 0)
+        pNext = pNext->next;
+
+    // If we found a valid menu transition to it.
+    if (pNext != NULL) {
+        selected_item = pNext;
         itemConfigId = -1;
         sfxPlay(SFX_CURSOR);
     }
@@ -579,8 +640,12 @@ static void menuNextH()
 
 static void menuPrevH()
 {
-    if (selected_item->prev != NULL) {
-        selected_item = selected_item->prev;
+    struct menu_list* pPrev = selected_item->prev;
+    while (pPrev != NULL && pPrev->item->visible == 0)
+        pPrev = pPrev->prev;
+
+    if (pPrev != NULL) {
+        selected_item = pPrev;
         itemConfigId = -1;
         sfxPlay(SFX_CURSOR);
     }
@@ -794,6 +859,10 @@ int menuCheckParentalLock(void)
     return result;
 }
 
+#ifdef CATCH_EXCEPTIONS_TEST
+static int* pTest = NULL;
+#endif
+
 void menuHandleInputMenu()
 {
     if (!mainMenu)
@@ -870,7 +939,20 @@ void menuHandleInputMenu()
         } else if (id == MENU_POWER_OFF) {
             if (guiMsgBox(_l(_STR_CONFIRMATION_POFF), 1, NULL))
                 sysPowerOff();
+
+#ifdef CATCH_EXCEPTIONS_TEST
+            pTest = (int*)0x80000000;
+#endif
         }
+        
+#ifdef CATCH_EXCEPTIONS_TEST
+        else if (id == MENU_CRASH_NULLDEREF)
+        {
+            int crash = *pTest;
+            _print("crash: 0x%08x\n", crash);
+        }
+#endif
+
 
         // so the exit press wont propagate twice
         readPads();
@@ -879,7 +961,10 @@ void menuHandleInputMenu()
     if (getKeyOn(KEY_START) || getKeyOn(gSelectButton == KEY_CIRCLE ? KEY_CROSS : KEY_CIRCLE)) {
         // Check if there is anything to show the user, at all.
         if (gAPPStartMode || gETHStartMode || gBDMStartMode || gHDDStartMode)
+        {
             guiSwitchScreen(GUI_SCREEN_MAIN);
+            refreshMenuPosition();
+        }
     }
 }
 
@@ -991,6 +1076,20 @@ void menuRenderGameMenu()
     guiDrawBGPlasma();
 
     if (!gameMenu)
+        return;
+
+    // If the device menu that has the selected game suddenly goes invisible (device was removed), switch
+    // back to the game list menu.
+    if (selected_item->item->visible == 0)
+    {
+        guiSwitchScreen(GUI_SCREEN_MAIN);
+        return;
+    }
+
+    // If we enter the game settings menu and there's no selected item bail out. I'm not entirely sure how we get into
+    // this state but it seems to happen on some consoles when transitioning from the game settings menu back to the game
+    // list menu.
+    if (selected_item->item->current == NULL)
         return;
 
     // draw the animated menu

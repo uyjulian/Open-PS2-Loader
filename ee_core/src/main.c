@@ -13,9 +13,13 @@
 #include "syshook.h"
 #include "gsm_api.h"
 #include "cheat_api.h"
+#include <syscallnr.h>
 
 void *ModStorageStart, *ModStorageEnd;
 void *eeloadCopy, *initUserMemory;
+
+// Address of the printf function in EE kernel memory. Can only be called while in kernel mode or the EE will hang.
+void (*krnl_print)(const char* format, ...) = NULL;
 
 int isInit = 0;
 
@@ -50,6 +54,35 @@ void _ps2sdk_timezone_update() {}
 DISABLE_PATCHED_FUNCTIONS();      // Disable the patched functionalities
 DISABLE_EXTRA_TIMERS_FUNCTIONS(); // Disable the extra functionalities for timers
 
+#ifdef __EESIO_DEBUG
+
+void eecoreDebugInit()
+{
+     // Get the address of ResetEE so we can find where printf is located.
+     u32* resetEEAddress = (u32*)GetSyscallHandler(__NR_ResetEE);
+     
+     // Find the first JAL instruction in ResetEE which should be a printf call.
+     ee_kmode_enter();
+     for (int i = 0; i < 15; i++)
+     {
+          // Check if the current instruction is a JAL.
+          u32 jalPrintf = resetEEAddress[i];
+          if ((jalPrintf & 0xFC000000) == 0xC000000)
+          {
+               // Get the call target which is the address of printf.
+               krnl_print = (void(*)(const char*, ...))(0x80000000 + ((jalPrintf & 0x3FFFFFF) << 2));
+               break;
+          }
+     }
+     ee_kmode_exit();
+
+     // If we found the printf function address re-enable the printf syscall.
+     if (krnl_print != NULL)
+        SetSyscall(__NR__print, krnl_print);
+}
+
+#endif
+
 static int eecoreInit(int argc, char **argv)
 {
     int i = 0;
@@ -67,6 +100,8 @@ static int eecoreInit(int argc, char **argv)
         GameMode = BDM_M4S_MODE;
     else if (!_strncmp(p, "BDM_USB_MODE", 12))
         GameMode = BDM_USB_MODE;
+    else if (!_strncmp(p, "BDM_MASS_ATA_MODE", 16))
+        GameMode = BDM_HDD_MODE;
     else if (!_strncmp(p, "ETH_MODE", 8))
         GameMode = ETH_MODE;
     else if (!_strncmp(p, "HDD_MODE", 8))
