@@ -17,8 +17,10 @@ int debugSetActive(void)
 #ifndef _DTL_T10000
     int ret;
 
+#if 0
     if ((ret = ethLoadInitModules()) != 0)
         return -1;
+#endif
 
 #ifdef __DECI2_DEBUG
     LOG("[DRVTIF]:\n");
@@ -33,18 +35,23 @@ int debugSetActive(void)
 #else
     LOG("[UDPTTY]:\n");
     ret = sysLoadModuleBuffer(&udptty_irx, size_udptty_irx, 0, NULL);
+    LOG("debugSetActive: udpttyp ret=%d\n", ret);
     if (ret < 0)
         return -8;
 
     LOG("[IOPTRAP]:\n");
     ret = sysLoadModuleBuffer(&ioptrap_irx, size_ioptrap_irx, 0, NULL);
+    LOG("debugSetActive: ioptrap ret=%d\n", ret);
     if (ret < 0)
         return -9;
 
+#if 0
     LOG("[PS2LINK]:\n");
     ret = sysLoadModuleBuffer(&ps2link_irx, size_ps2link_irx, 0, NULL);
+    LOG("debugSetActive: ps2link ret=%d\n", ret);
     if (ret < 0)
         return -10;
+#endif
 #endif
 #endif
 
